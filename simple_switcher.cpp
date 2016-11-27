@@ -10,14 +10,16 @@
 #include "simple_switcher.h"
 
 
-SimpleSwitcher::SimpleSwitcher(int buttonPin, int ledPin){
+SimpleSwitcher::SimpleSwitcher(int buttonPin, int ledPin, uint16_t *modbus, int buttonBit, int stateBit){
     this->buttonPin = buttonPin;
     this->ledPin = ledPin;
+    this->modbus = modbus;
+    this->buttonBit = buttonBit;
+    this->stateBit = stateBit;
 } 
 
 void SimpleSwitcher::setup(){
     pinMode(this->buttonPin, INPUT_PULLUP);
-    //digitalWrite(this->buttonPin, HIGH);
     pinMode(this->ledPin, OUTPUT); 
     digitalWrite(this->ledPin, LOW);
 } 
@@ -25,21 +27,22 @@ void SimpleSwitcher::setup(){
 
 void SimpleSwitcher::checkSwitches()
 {
-
     if (this->isDebouncing && (this->debounceLastTime + DEBOUNCE) > millis()) {
         return; // not enough time has passed to debounce
     }
-    char currentstate = !digitalRead(this->buttonPin);   // read the button
+    char currentState = !digitalRead(this->buttonPin);   // read the button
+
+    //Сохраняем состояние кнопки в регистр 0.x
+    bitWrite(modbus[0], buttonBit, !currentState);
     
-    if (currentstate != this->pressed) {
-        if (currentstate == 1) {
+    if (currentState != this->pressed) {
+        if (currentState == 1) {
             // just pressed
             this->onButtonPressed();
             this->pressed = 1;
         }
-        else if (currentstate == 0) {
+        else {
             // just released
-            this->onButtonReleased();
             this->pressed = 0;
         }
         this->isDebouncing = 1;
@@ -52,25 +55,36 @@ void SimpleSwitcher::checkSwitches()
 }
 
 void SimpleSwitcher::loop() {
-    this->checkSwitches();      // when we check the switches we'll get the current state
+    char modbusOn = bitRead(modbus[1], stateBit);
+    if (modbusOn != lightOn) {
+        lightOn = modbusOn;
+        setLight();
+    }
  
-    //if (this->pressed) {
-    //    this->onButtonKeepsPressed();
-    //}
+    this->checkSwitches();      // when we check the switches we'll get the current state 
 }
 
-void SimpleSwitcher::onButtonPressed() {
-      if (this->light1_on == 1) {
-       this->light1_on = 0;
+void SimpleSwitcher::setLight() {
+    if (this->lightOn == 0) {
        digitalWrite(this->ledPin, LOW);
     }
     else {
-       this->light1_on = 1;
        digitalWrite(this->ledPin, HIGH);
     }
 }
 
-void SimpleSwitcher::onButtonReleased() {
+void SimpleSwitcher::onButtonPressed() {
+    if (this->lightOn == 1) {
+       this->lightOn = 0;
+    }
+    else {
+       this->lightOn = 1;
+    }
+
+    setLight();
+       
+    //Сохраняем состояние кнопки в регистр 1.x
+    bitWrite(modbus[1], stateBit, lightOn);
 }
 
 #endif

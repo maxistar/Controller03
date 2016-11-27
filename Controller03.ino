@@ -1,17 +1,71 @@
 #include "dimmer_types.h"
 #include "simple_switcher.h"
+#include "ModbusRtu.h"
+#include "DHT.h"
 
+
+// адрес ведомого
+#define ID   3      
+//#define btnPin  2   // номер входа, подключенный к кнопке
+//define stlPin  13  // номер выхода индикатора работы
+                    // расположен на плате Arduino
+//define ledPin  9  // номер выхода светодиода
+#define txControlPin  0 
+
+// номер пина, к которому подсоединен датчик
+#define DHTPIN 3 
+
+// temperature read interval
+#define TEMP_READ_INTERVAL 2000
+
+/**
+ * 1 - 1 word - registers to read
+ * 1.0 light switch boys room 
+ * 1.1 light switch 2 boys room
+ * 1.2 ligth switch girls room
+ * 1.3 light switch closet room
+ * 1.4 door switch closet room
+ * 1.5 door switch boys room
+ * 1.6 door switch girls room
+ * 
+ * 2 - 1 word - registers to write/read
+ * 2.0 light 1 boys room
+ * 2.1 ligth 2 boys room
+ * 2.2 ligth girls room
+ * 2.3 ligth closet room
+ * 
+ * 3 - 2 words
+ * 3.1 temperature
+ * 3.2 humidity
+ * 3.3 count of modbus errors
+ * 
+ * 4 - 2 words hold registers
+ * 4.1 - maximum pwd value for closet light
+ * 
+ * 
+ */
+
+Modbus slave(ID, 0, txControlPin);
+
+// массив данных modbus
+uint16_t au16data[6];
+int8_t state = 0;
+
+DHT dht(DHTPIN, DHT22);
+
+//детская Мальчиков
+SimpleSwitcher sd2(A2, A5, au16data, 0, 0);
+
+//детская Мальчиков 2
+SimpleSwitcher sd3(8, 13, au16data, 1, 1);
 
 //детская Ани
-SimpleSwitcher sd1(A0, A4);
-//детская Мальчиков
-SimpleSwitcher sd2(A2, A5);
-//Лоджия
-SimpleSwitcher sd3(8, 13);
+SimpleSwitcher sd1(A0, A4, au16data, 2, 2);
+
 //Гардеробная
-SimpleSwitcher sd4(11, 12);
+SimpleSwitcher sd4(11, 12, au16data, 3, 3);
 
-
+unsigned long lastTempRead;
  
 void setup() 
 {
@@ -19,12 +73,59 @@ void setup()
   sd2.setup();
   sd3.setup();
   sd4.setup();
+
+  pinMode(10, INPUT_PULLUP);
+  pinMode(A1, INPUT_PULLUP);
+  pinMode(A3, INPUT_PULLUP);
+
+
+  dht.begin();
+  
+  slave.begin( 19200 ); 
+
+  lastTempRead = millis();
+
+}
+
+void io_poll() {
+  au16data[4] = slave.getErrCnt();
+
+  bitWrite( au16data[0], 4, digitalRead( 10 ));
+  bitWrite( au16data[0], 5, digitalRead( A1 ));
+  bitWrite( au16data[0], 6, digitalRead( A3 ));
 }
  
 void loop() 
 {
-    sd1.loop();
-    sd2.loop();
-    sd3.loop();
-    sd4.loop();
+  state = slave.poll( au16data, 11);  
+  // если получили пакет без ошибок - зажигаем светодиод на 50 мс 
+  //if (state > 4) {
+    //tempus = millis() + 50;
+    //digitalWrite(stlPin, HIGH);
+  //}
+  //if (millis() > tempus) digitalWrite(stlPin, LOW );
+
+  if (millis() - lastTempRead > TEMP_READ_INTERVAL) {
+    lastTempRead = millis();
+
+    // Считываем температуру
+    float t = dht.readTemperature();
+    if (!isnan(t)) {
+       au16data[2] = (uint16_t) t*100;
+    }
+    
+    //read humidity
+    float h = dht.readHumidity();
+    if (!isnan(h)) {
+       au16data[3] = (uint16_t) h*100;
+    }
+  }
+    
+  sd1.loop();
+  sd2.loop();
+  sd3.loop();
+  sd4.loop();
+
+  //обновляем данные в регистрах Modbus и в пользовательской программе
+  io_poll();
 }
