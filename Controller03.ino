@@ -8,13 +8,12 @@
 
 // адрес ведомого
 #define ID   3      
-//#define btnPin  2   // номер входа, подключенный к кнопке
 //define stlPin  13  // номер выхода индикатора работы
                     // расположен на плате Arduino
 //define ledPin  9  // номер выхода светодиода
 #define txControlPin  0 
 
-// номер пина, к которому подсоединен датчик
+// номер пина, к которому подсоединен датчик температуры
 #define DHTPIN 3 
 
 // temperature read interval
@@ -67,6 +66,17 @@ SimpleSwitcher sd1(A0, A4, modbus, 2, 2);
 //Гардеробная
 SimpleDimmer sd4(11, 5, 12, modbus, 3, 3, 5);
 
+void sw1_change(char value) {
+  //write to modbus changed state
+  bitWrite(modbus[0], 4, value);
+
+  if (value == 0 && sd4.isOff()) {
+      sd4.on();
+  }
+}
+
+Switcher sw1(10); //геркон на дверь в гардеробную
+
 unsigned long lastTempRead;
  
 void setup() 
@@ -75,6 +85,9 @@ void setup()
   sd2.setup();
   sd3.setup();
   sd4.setup();
+
+  sw1.setup();
+  sw1.setChangeCallback(sw1_change);
 
   pinMode(10, INPUT_PULLUP);
   pinMode(A1, INPUT_PULLUP);
@@ -92,7 +105,6 @@ void setup()
 void io_poll() {
   modbus[4] = slave.getErrCnt();
 
-  bitWrite(modbus[0], 4, digitalRead( 10 ));
   bitWrite(modbus[0], 5, digitalRead( A1 ));
   bitWrite(modbus[0], 6, digitalRead( A3 ));
 }
@@ -121,6 +133,7 @@ void loop()
   sd2.loop();
   sd3.loop();
   sd4.loop();
+  sw1.loop();
 
   //обновляем данные в регистрах Modbus и в пользовательской программе
   io_poll();

@@ -94,7 +94,7 @@ void SimpleDimmer::onButtonPressed() {
        this->lightStep = this->lightStepLight;
     }
     
-    //Сохраняем состояние кнопки в регистр 1.x
+    //Сохраняем состояние света в регистр 1.x
     bitWrite(modbus[1], stateBit, lightOn);
 }
 
@@ -210,6 +210,37 @@ void SimpleDimmer::loop() {
         this->onButtonKeepsPressed();
     }
     this->doAnimation();
+}
+
+int SimpleDimmer::isOn() {
+  return lightOn;  
+}
+
+int SimpleDimmer::isOff() {
+  return lightOn == 0;  
+}
+
+
+void SimpleDimmer::on() {
+    if (this->lightOn) return; //already on, nothing to do
+    
+    this->lightOn = 1;
+    this->lightTarget = this->lightMax;
+    this->lightStep = this->lightStepLight;
+    
+    //Сохраняем состояние света в регистр 1.x
+    bitWrite(modbus[1], stateBit, lightOn);  
+}
+
+void SimpleDimmer::off() {
+    if (this->lightOn == 0) return; //already off, nothing to do
+    
+    this->lightOn = 0;
+    this->lightTarget = 0;
+    this->lightStep = -this->lightStepLight;
+    
+    //Сохраняем состояние света в регистр 1.x
+    bitWrite(modbus[1], stateBit, lightOn);  
 }
 
 #endif

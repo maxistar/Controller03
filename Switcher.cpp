@@ -28,15 +28,14 @@ void Switcher::checkSwitches()
     char currentState = !buttonState;   // read the button
 
     if (currentState != this->pressed) {
+        this->pressed = currentState;
         if (currentState == 1) {
-            // just pressed
-            this->onButtonPressed();
-            this->pressed = 1;
+            this->_onPressed();
         }
         else {
-            // just released
-            this->pressed = 0;
+            this->_onReleased();
         }
+        this->_onChanged(this->pressed);
         this->isDebouncing = 1;
     } 
     else {
@@ -50,9 +49,35 @@ void Switcher::loop() {
     this->checkSwitches();      // when we check the switches we'll get the current state 
 }
 
-void Switcher::onButtonPressed() {
-    
+void Switcher::_onPressed() {
+    if (pressCallbackPtr != NULL) {
+        pressCallbackPtr();       
+    }
 }
+
+void Switcher::_onReleased() {
+    if (releaseCallbackPtr != NULL) {
+        releaseCallbackPtr();      
+    }
+}
+
+void Switcher::_onChanged(char state) {
+    if (changeCallbackPtr != NULL) {
+        changeCallbackPtr(state);
+    }
+}
+
+void Switcher::setChangeCallback(void (*changeCallbackPtr)(char)) {
+    this->changeCallbackPtr = changeCallbackPtr;
+}
+void Switcher::setPressCallback(void (*pressCallbackPtr)()) {
+    this->pressCallbackPtr = pressCallbackPtr;
+}
+void Switcher::setReleaseCallback(void (*releaseCallbackPtr)()) {
+    this->releaseCallbackPtr = releaseCallbackPtr;
+}
+
+
 
 #endif
 

@@ -38,6 +38,13 @@ class SimpleDimmer {
     
     public:
     SimpleDimmer(int buttonPin, int ledPin, int powerPin, uint16_t *modbus, int buttonBit, int stateBit, int maxValueIndex);
+    
+    int isOn();
+    int isOff();
+    
+    void on();
+    void off();
+    
     void loop();
     void setup();
 };
