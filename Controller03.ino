@@ -1,7 +1,9 @@
-#include "dimmer_types.h"
-#include "simple_switcher.h"
+#include "SimpleSwitcher.h"
+#include "SimpleDimmer.h"
 #include "ModbusRtu.h"
 #include "DHT.h"
+#include "Switcher.h"
+
 
 
 // адрес ведомого
@@ -48,22 +50,22 @@
 Modbus slave(ID, 0, txControlPin);
 
 // массив данных modbus
-uint16_t au16data[6];
+uint16_t modbus[6];
 int8_t state = 0;
 
 DHT dht(DHTPIN, DHT22);
 
 //детская Мальчиков
-SimpleSwitcher sd2(A2, A5, au16data, 0, 0);
+SimpleSwitcher sd2(A2, A5, modbus, 0, 0);
 
 //детская Мальчиков 2
-SimpleSwitcher sd3(8, 13, au16data, 1, 1);
+SimpleSwitcher sd3(8, 13, modbus, 1, 1);
 
 //детская Ани
-SimpleSwitcher sd1(A0, A4, au16data, 2, 2);
+SimpleSwitcher sd1(A0, A4, modbus, 2, 2);
 
 //Гардеробная
-SimpleSwitcher sd4(11, 12, au16data, 3, 3);
+SimpleDimmer sd4(11, 5, 12, modbus, 3, 3, 5);
 
 unsigned long lastTempRead;
  
@@ -88,22 +90,16 @@ void setup()
 }
 
 void io_poll() {
-  au16data[4] = slave.getErrCnt();
+  modbus[4] = slave.getErrCnt();
 
-  bitWrite( au16data[0], 4, digitalRead( 10 ));
-  bitWrite( au16data[0], 5, digitalRead( A1 ));
-  bitWrite( au16data[0], 6, digitalRead( A3 ));
+  bitWrite(modbus[0], 4, digitalRead( 10 ));
+  bitWrite(modbus[0], 5, digitalRead( A1 ));
+  bitWrite(modbus[0], 6, digitalRead( A3 ));
 }
  
 void loop() 
 {
-  state = slave.poll( au16data, 11);  
-  // если получили пакет без ошибок - зажигаем светодиод на 50 мс 
-  //if (state > 4) {
-    //tempus = millis() + 50;
-    //digitalWrite(stlPin, HIGH);
-  //}
-  //if (millis() > tempus) digitalWrite(stlPin, LOW );
+  state = slave.poll(modbus, 11);
 
   if (millis() - lastTempRead > TEMP_READ_INTERVAL) {
     lastTempRead = millis();
@@ -111,13 +107,13 @@ void loop()
     // Считываем температуру
     float t = dht.readTemperature();
     if (!isnan(t)) {
-       au16data[2] = (uint16_t) t*100;
+       modbus[2] = (uint16_t) t*100;
     }
     
     //read humidity
     float h = dht.readHumidity();
     if (!isnan(h)) {
-       au16data[3] = (uint16_t) h*100;
+       modbus[3] = (uint16_t) h*100;
     }
   }
     

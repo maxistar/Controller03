@@ -6,8 +6,9 @@
  #include "WProgram.h"
 #endif
 
-#include "dimmer_types.h"
-#include "simple_switcher.h"
+#include "SimpleSwitcher.h"
+
+#define DEBOUNCE 50
 
 
 SimpleSwitcher::SimpleSwitcher(int buttonPin, int ledPin, uint16_t *modbus, int buttonBit, int stateBit){
@@ -30,10 +31,11 @@ void SimpleSwitcher::checkSwitches()
     if (this->isDebouncing && (this->debounceLastTime + DEBOUNCE) > millis()) {
         return; // not enough time has passed to debounce
     }
-    char currentState = !digitalRead(this->buttonPin);   // read the button
+    char buttonState = digitalRead(this->buttonPin);
+    char currentState = !buttonState;   // read the button
 
     //Сохраняем состояние кнопки в регистр 0.x
-    bitWrite(modbus[0], buttonBit, !currentState);
+    bitWrite(modbus[0], buttonBit, buttonState);
     
     if (currentState != this->pressed) {
         if (currentState == 1) {
