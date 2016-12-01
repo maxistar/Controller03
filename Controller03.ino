@@ -68,7 +68,7 @@ SimpleDimmer sd4(11, 5, 12, modbus, 3, 3, 5);
 
 void sw1_change(char value) {
   //write to modbus changed state
-  bitWrite(modbus[0], 4, value);
+  bitWrite(modbus[0], 4, !value);
 
   if (value == 0 && sd4.isOff()) {
       sd4.on();

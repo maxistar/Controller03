@@ -9,7 +9,7 @@
 #include "SimpleDimmer.h"
 
 #define DEBOUNCE 50
-#define ANIMATION_STEP 100
+#define ANIMATION_STEP 25
 #define LONG_PRESS 5000
 
 SimpleDimmer::SimpleDimmer(int buttonPin, int ledPin, int powerPin, uint16_t *modbus, int buttonBit, int stateBit, int maxValueIndex) {
