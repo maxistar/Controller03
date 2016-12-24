@@ -11,13 +11,13 @@
 //define stlPin  13  // номер выхода индикатора работы
                     // расположен на плате Arduino
 //define ledPin  9  // номер выхода светодиода
-#define txControlPin  0 
+#define txControlPin  2 
 
 // номер пина, к которому подсоединен датчик температуры
 #define DHTPIN 3 
 
 // temperature read interval
-#define TEMP_READ_INTERVAL 2000
+#define TEMP_READ_INTERVAL 20000
 
 /**
  * 1 - 1 word - registers to read
